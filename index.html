@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Financiero Personal</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Bibliotecas para exportación -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1><i class="fas fa-wallet"></i> Control Financiero</h1>
+            <div class="theme-toggle">
+                <button id="themeBtn"><i class="fas fa-moon"></i></button>
+            </div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="personal">Gastos Personales</button>
+            <button class="tab-btn" data-tab="viaticos">Viáticos</button>
+        </nav>
+
+        <main class="tab-content">
+            <!-- Pestaña Gastos Personales -->
+            <div id="personal" class="tab-pane active">
+                <section class="cycle-control">
+                    <div class="cycle-info">
+                        <h2>Ciclo Actual: <span id="currentCycleName">No iniciado</span></h2>
+                        <div class="cycle-stats">
+                            <div class="stat-card">
+                                <h3>Monto Inicial</h3>
+                                <p id="initialAmount">$0.00</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Monto Restante</h3>
+                                <p id="remainingAmount">$0.00</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Total Gastado</h3>
+                                <p id="totalSpent">$0.00</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Porcentaje</h3>
+                                <p id="percentageSpent">0%</p>
+                            </div>
+                        </div>
+                        <button id="newCycleBtn" class="btn-primary">Iniciar Nuevo Ciclo</button>
+                        <button id="exportPersonalBtn" class="btn-secondary">Exportar Datos</button>
+                    </div>
+
+                    <div class="comparison-section">
+                        <h3>Comparación con ciclo anterior</h3>
+                        <div id="cycleComparison"></div>
+                    </div>
+                </section>
+
+                <section class="expense-section">
+                    <div class="section-header">
+                        <h2>Registrar Nuevo Gasto</h2>
+                        <div class="filters">
+                            <select id="categoryFilter">
+                                <option value="">Todas las categorías</option>
+                            </select>
+                            <input type="date" id="dateFilter">
+                            <button id="resetFilters" class="btn-small">Reset</button>
+                        </div>
+                    </div>
+                    
+                    <form id="expenseForm" class="expense-form">
+                        <div class="form-group">
+                            <label for="expenseAmount">Monto:</label>
+                            <input type="number" id="expenseAmount" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="expenseDate">Fecha:</label>
+                            <input type="date" id="expenseDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="expenseCategory">Categoría:</label>
+                            <select id="expenseCategory" required>
+                                <option value="">Seleccione una categoría</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="expenseDescription">Descripción (opcional):</label>
+                            <input type="text" id="expenseDescription">
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="isRecurrent">
+                                <span class="checkmark"></span>
+                                Gasto recurrente
+                            </label>
+                        </div>
+                        <button type="submit" class="btn-primary">Agregar Gasto</button>
+                    </form>
+                </section>
+
+                <section class="expenses-list">
+                    <h2>Últimos Gastos</h2>
+                    <div class="table-container">
+                        <table id="expensesTable">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Categoría</th>
+                                    <th>Descripción</th>
+                                    <th>Monto</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS will populate this -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button id="showMoreExpenses" class="btn-secondary">Ver más</button>
+                </section>
+
+                <section class="charts-section">
+                    <h2>Visualización de Gastos</h2>
+                    <div class="chart-container">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </section>
+
+                <section class="history-section">
+                    <h2>Historial de Ciclos</h2>
+                    <div class="table-container">
+                        <table id="cyclesHistoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Inicio</th>
+                                    <th>Monto Inicial</th>
+                                    <th>Total Gastado</th>
+                                    <th>Restante</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS will populate this -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Pestaña Viáticos -->
+            <div id="viaticos" class="tab-pane">
+                <section class="cycle-control">
+                    <div class="cycle-info">
+                        <h2>Salida Actual: <span id="currentTripName">No iniciada</span></h2>
+                        <div class="cycle-stats">
+                            <div class="stat-card">
+                                <h3>Monto Asignado</h3>
+                                <p id="tripInitialAmount">$0.00</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Monto Restante</h3>
+                                <p id="tripRemainingAmount">$0.00</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Total Gastado</h3>
+                                <p id="tripTotalSpent">$0.00</p>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Porcentaje</h3>
+                                <p id="tripPercentageSpent">0%</p>
+                            </div>
+                        </div>
+                        <button id="newTripBtn" class="btn-primary">Iniciar Nueva Salida</button>
+                        <button id="exportTripBtn" class="btn-secondary">Exportar Datos</button>
+                    </div>
+
+                    <div class="comparison-section">
+                        <h3>Comparación con salida anterior</h3>
+                        <div id="tripComparison"></div>
+                    </div>
+                </section>
+
+                <section class="expense-section">
+                    <div class="section-header">
+                        <h2>Registrar Gasto de Viático</h2>
+                        <div class="filters">
+                            <select id="tripCategoryFilter">
+                                <option value="">Todas las categorías</option>
+                            </select>
+                            <input type="date" id="tripDateFilter">
+                            <button id="resetTripFilters" class="btn-small">Reset</button>
+                        </div>
+                    </div>
+                    
+                    <form id="tripExpenseForm" class="expense-form">
+                        <div class="form-group">
+                            <label for="tripExpenseAmount">Monto:</label>
+                            <input type="number" id="tripExpenseAmount" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="tripExpenseDate">Fecha:</label>
+                            <input type="date" id="tripExpenseDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="tripExpenseCategory">Categoría:</label>
+                            <select id="tripExpenseCategory" required>
+                                <option value="">Seleccione una categoría</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="tripExpenseDescription">Descripción (opcional):</label>
+                            <input type="text" id="tripExpenseDescription">
+                        </div>
+                        <button type="submit" class="btn-primary">Agregar Gasto</button>
+                    </form>
+                </section>
+
+                <section class="expenses-list">
+                    <h2>Últimos Gastos</h2>
+                    <div class="table-container">
+                        <table id="tripExpensesTable">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Categoría</th>
+                                    <th>Descripción</th>
+                                    <th>Monto</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS will populate this -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button id="showMoreTripExpenses" class="btn-secondary">Ver más</button>
+                </section>
+
+                <section class="history-section">
+                    <h2>Historial de Salidas</h2>
+                    <div class="table-container">
+                        <table id="tripsHistoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Fecha Inicio</th>
+                                    <th>Monto Asignado</th>
+                                    <th>Total Gastado</th>
+                                    <th>Restante</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS will populate this -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Modales -->
+        <div id="newCycleModal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2>Iniciar Nuevo Ciclo Financiero</h2>
+                <form id="newCycleForm">
+                    <div class="form-group">
+                        <label for="cycleName">Nombre del Ciclo:</label>
+                        <input type="text" id="cycleName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cycleAmount">Monto Disponible:</label>
+                        <input type="number" id="cycleAmount" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cycleNotes">Notas (opcional):</label>
+                        <textarea id="cycleNotes" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Iniciar Ciclo</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="newTripModal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2>Iniciar Nueva Salida</h2>
+                <form id="newTripForm">
+                    <div class="form-group">
+                        <label for="tripName">Nombre de la Salida:</label>
+                        <input type="text" id="tripName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tripAmount">Monto Asignado:</label>
+                        <input type="number" id="tripAmount" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tripStartDate">Fecha de Inicio:</label>
+                        <input type="date" id="tripStartDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tripNotes">Notas (opcional):</label>
+                        <textarea id="tripNotes" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary">Iniciar Salida</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="exportModal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2>Exportar Datos</h2>
+                <div class="export-options">
+                    <button id="exportExcel" class="btn-primary"><i class="fas fa-file-excel"></i> Excel</button>
+                    <button id="exportCSV" class="btn-primary"><i class="fas fa-file-csv"></i> CSV</button>
+                    <button id="exportPDF" class="btn-primary"><i class="fas fa-file-pdf"></i> PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
